@@ -82,6 +82,13 @@ function render() {
 	const iRatio = canvas.height / (iMax - iMin);
 
 	ctx.drawImage(lastDrawn.image, rOffset * rRatio, iOffset * iRatio, rWidth * rRatio, iWidth * iRatio);
+	if (busy) {
+		ctx.font = "bold 32px sans-serif"
+		ctx.lineWidth = 4;
+		ctx.strokeStyle = "#FFFFFF"
+		ctx.strokeText("Calculating...", 8, 34);
+		ctx.fillText("Calculating...", 8, 34)
+	}
 }
 
 window.addEventListener('wheel', (e) => {
