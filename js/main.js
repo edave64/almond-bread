@@ -112,7 +112,8 @@ let dragStartMinR = 0;
 let dragStartMaxR = 0;
 let dragStartX = 0;
 let dragStartY = 0;
-const aa = 4;
+const aaMatch = location.search.match(/[?&]aa=(\d+)/);
+const aa = aaMatch ? +aaMatch[1] : 1;
 
 window.addEventListener('mousedown', (e) => {
 	dragging = true;
