@@ -58,6 +58,12 @@ function MandelbrotAsmModule(stdlib, foreign, heap) {
 		xy = x * y;
 		val = xx + yy;
 
+		// Skips based on https://www.shadertoy.com/view/lsX3W4
+		// skip computation inside M1 - http://iquilezles.org/www/articles/mset_1bulb/mset1bulb.htm
+		if (256.0 * val * val - 96.0 * val + 32.0 * x - 3.0 < 0.0) return max_iter | 0;
+		// skip computation inside M2 - http://iquilezles.org/www/articles/mset_2bulb/mset2bulb.htm
+		if (16.0 * (val + 2.0 * x + 1.0) - 1.0 < 0.0) return max_iter | 0;
+
 		while ((val <= maxVal) & ((i | 0) > 0)) {
 			i = (i - 1) | 0;
 			x = xx - yy + xadd;
