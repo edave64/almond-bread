@@ -3,12 +3,32 @@
  */
 onmessage = function (request) {
 	const data = request.data;
-	mandelbrot(data.rMin, data.rMax, data.iMin, data.iMax, data.maxVal, data.maxIter, data.image);
+
+	// asmjs heaps need a power of two as its heap size
+	const heap = new ArrayBuffer(getNextPowerOfTwo(data.image.data.byteLength));
+	const {mandelbrot} = MandelbrotAsmModule(globalThis, null, heap);
+	mandelbrot(data.rMin, data.rMax, data.iMin, data.iMax, data.maxVal, data.maxIter, data.image.height, data.image.width);
+	data.image.data.set(new Uint8ClampedArray(heap).slice(0, data.image.data.byteLength));
 	postMessage(data);
 };
 
+function getNextPowerOfTwo(v) {
+	// https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+	v--;
+	v |= v >> 1;
+	v |= v >> 2;
+	v |= v >> 4;
+	v |= v >> 8;
+	v |= v >> 16;
+	v++;
+	return v;
+}
+
 function MandelbrotAsmModule(stdlib, foreign, heap) {
 	"use asm";
+
+	var imul = stdlib.Math.imul;
+	var buf = new stdlib.Uint8Array(heap)
 
 	/**
 	 * @param {number} x
@@ -57,56 +77,70 @@ function MandelbrotAsmModule(stdlib, foreign, heap) {
 	 * @returns
 	 */
 	function pickColor(iterationen, max_iter) {
-		iterationen = +iterationen;
-		max_iter = +max_iter;
+		iterationen = iterationen | 0;
+		max_iter = max_iter | 0;
 		var frac = 0.0;
 		var maxColor = 16777215.0;
 		var color = 0.0;
-		frac = iterationen / max_iter;
+		frac = +(iterationen | 0) / +(max_iter | 0);
 		color = maxColor * frac;
 
 		return ~~(maxColor - color) | 0;
 	}
 
-	return {
-		julia: julia,
-		pickColor: pickColor,
-	}
-}
+	/**
+	 *
+	 * @param {number} rMin
+	 * @param {number} rMax
+	 * @param {number} iMin
+	 * @param {number} iMax
+	 * @param {number} maxVal
+	 * @param {number} maxIter
+	 * @param {number} height
+	 * @param {number} width
+	 */
+	function mandelbrot(rMin, rMax, iMin, iMax, maxVal, maxIter, height, width) {
+		rMin = +rMin;
+		rMax = +rMax;
+		iMin = +iMin;
+		iMax = +iMax;
+		maxVal = +maxVal;
+		maxIter = maxIter | 0;
+		height = height | 0;
+		width = width | 0;
 
-const {julia, pickColor} = MandelbrotAsmModule(globalThis, null, null);
+		var reSpan = 0.0;
+		var imSpan = 0.0;
+		var color = 0;
+		var iterations = 0;
+		var x = 0;
+		var y = 0;
+		var i = 0.0;
+		var r = 0.0;
+		var pxOffset = 0;
 
-/**
- *
- * @param {number} rMin
- * @param {number} rMax
- * @param {number} iMin
- * @param {number} iMax
- * @param {number} maxVal
- * @param {number} maxIter
- * @param {ImageData} image
- */
-function mandelbrot(rMin, rMax, iMin, iMax, maxVal, maxIter, image) {
-	const bitmap = image.data;
-	const reSpan = rMax - rMin;
-	const imSpan = iMax - iMin;
+		reSpan = rMax - rMin;
+		imSpan = iMax - iMin;
 
-	for (let y = 0; y < image.height; ++y) {
-		const i = iMin + imSpan * y / image.height
+		for (y = 0; (y | 0) < (height | 0); y = (y + 1) | 0) {
+			i = iMin + imSpan * +(y | 0) / +(height | 0);
 
-		for (let x = 0; x < image.width; ++x) {
-			const r = rMin + reSpan * x / image.width
+			for (x = 0; (x | 0) < (width | 0); x = (x + 1) | 0) {
+				r = rMin + reSpan * +(x | 0) / +(width | 0);
 
-			const iterations = julia(r, i, r, i, maxVal, maxIter)
-			const color = pickColor(iterations, maxIter)
-			const pxOffset = (y * image.width + x) * 4;
+				iterations = julia(r, i, r, i, maxVal, maxIter) | 0;
+				color = pickColor(iterations, maxIter) | 0;
+				pxOffset = (imul(y, width) + x) << 2;
 
-			bitmap[pxOffset] = (color & 0xFF0000) >> 16;
-			bitmap[pxOffset + 1] = (color & 0x00FF00) >> 8;
-			bitmap[pxOffset + 2] = color & 0x0000FF;
-			bitmap[pxOffset + 3] = 255;
+				buf[pxOffset] = (color & 0xFF0000) >> 16;
+				buf[(pxOffset + 1) | 0] = (color & 0x00FF00) >> 8;
+				buf[(pxOffset + 2) | 0] = color & 0x0000FF;
+				buf[(pxOffset + 3) | 0] = 255;
+			}
 		}
 	}
 
-	return bitmap;
+	return {
+		mandelbrot: mandelbrot
+	}
 }
