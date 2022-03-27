@@ -68,8 +68,8 @@ function redraw() {
 		...aspectRatioFix(),
 		maxVal: curMaxBetrag,
 		maxIter: curIter,
-		width: canvas.width * aa,
-		height: canvas.height * aa,
+		width: canvas.width,
+		height: canvas.height,
 	};
 
 	if (busy) {
@@ -219,8 +219,8 @@ function aspectRatioFix() {
 
 function resized() {
 	dragging = false;
-	canvas.height = canvas.offsetHeight;
-	canvas.width = canvas.offsetWidth;
+	canvas.height = canvas.offsetHeight * window.devicePixelRatio * aa;
+	canvas.width = canvas.offsetWidth * window.devicePixelRatio * aa;
 	redraw();
 	requestAnimationFrame(render);
 }
