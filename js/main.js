@@ -23,7 +23,37 @@ let curImMax = baseImMax;
 let curMaxBetrag = baseMaxBetrag;
 let curIter = baseIter;
 
-const worker = location.search.includes("asm") ? new Worker("js/worker_asm.js") : new Worker("js/worker_js.js");
+const webglMatch = location.search.match(/[?&]webgl(&|$)/);
+
+let drawWithData = null;
+
+if (location.search.match(/[?&]webgl(&|$)/)) {
+	let drawAfterLoad = null;
+	drawWithData = (drawData) => drawAfterLoad = drawData;
+	import("./webgl_renderer.js").then((module) => {
+		drawWithData = (drawData) => {
+			var canvas = module.render(drawData);
+			renderFinished({
+				...drawData,
+				image: canvas,
+			});
+		}
+		if (drawAfterLoad) {
+			drawWithData(drawAfterLoad);
+		}
+	});
+} else {
+	const worker = location.search.includes("asm") ? new Worker("js/worker_asm.js") : new Worker("js/worker_js.js");
+	drawWithData = (drawData) => {
+		drawData.image = ctx.createImageData(drawData.width, drawData.height);
+		worker.postMessage(drawData);
+	}
+
+	worker.addEventListener('message', function (e) {
+		renderFinished(e.data);
+	});
+}
+
 
 /**
  * @type {{rMin: number, rMax: number, iMin: number, iMax: number, maxVal: number, maxIter: number, image: ImageBitmap}}
@@ -38,7 +68,8 @@ function redraw() {
 		...aspectRatioFix(),
 		maxVal: curMaxBetrag,
 		maxIter: curIter,
-		image: ctx.createImageData(canvas.width * aa, canvas.height * aa)
+		width: canvas.width * aa,
+		height: canvas.height * aa,
 	};
 
 	if (busy) {
@@ -47,25 +78,24 @@ function redraw() {
 	}
 
 	time = Date.now();
-	worker.postMessage(drawData);
+	drawWithData(drawData);
 	busy = true;
 }
-
-worker.addEventListener('message', async function (e) {
-	const bitmap = await createImageBitmap(e.data.image);
-	lastDrawn = e.data;
+async function renderFinished(e) {
+	const bitmap = await createImageBitmap(e.image);
+	lastDrawn = e;
 	lastDrawn.image = bitmap;
 	requestAnimationFrame(render);
 
 	console.log("Took:" + (Date.now() - time));
 	if (queuedDraw) {
 		time = Date.now();
-		worker.postMessage(queuedDraw);
+		drawWithData(queuedDraw);
 		queuedDraw = null;
 	} else {
 		busy = false;
 	}
-});
+}
 
 function render() {
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
