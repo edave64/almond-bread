@@ -128,16 +128,18 @@ window.addEventListener('wheel', (e) => {
 	const wheelPosX = e.pageX / canvas.offsetWidth;
 	const wheelPosY = e.pageY / canvas.offsetHeight;
 
-	const iSpan = (curImMax - curImMin);
-	const rSpan = (curReMax - curReMin);
+	const v = aspectRatioFix();
 
-	const rCenter = curReMin + rSpan * wheelPosX;
-	const iCenter = curImMin + iSpan * wheelPosY;
+	const iSpan = (v.iMax - v.iMin);
+	const rSpan = (v.rMax - v.rMin);
 
-	curImMax = iCenter + (curImMax - iCenter) * factor;
-	curImMin = iCenter - (iCenter - curImMin) * factor;
-	curReMax = rCenter + (curReMax - rCenter) * factor;
-	curReMin = rCenter - (rCenter - curReMin) * factor;
+	const rCenter = v.rMin + rSpan * wheelPosX;
+	const iCenter = v.iMin + iSpan * wheelPosY;
+
+	curImMax = iCenter + (v.iMax - iCenter) * factor;
+	curImMin = iCenter - (iCenter - v.iMin) * factor;
+	curReMax = rCenter + (v.rMax - rCenter) * factor;
+	curReMin = rCenter - (rCenter - v.rMin) * factor;
 
 	redraw();
 	requestAnimationFrame(render);
