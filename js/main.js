@@ -1,5 +1,5 @@
 /** @type {HTMLCanvasElement} */
-var canvas;
+let canvas;
 
 document.body.replaceChildren(
 	canvas = document.createElement('canvas')
@@ -58,7 +58,7 @@ if (location.search.match(/[?&]webgl(&|$)/)) {
 /**
  * @type {{rMin: number, rMax: number, iMin: number, iMax: number, maxVal: number, maxIter: number, image: ImageBitmap}}
  */
-lastDrawn = null;
+let lastDrawn = null;
 let queuedDraw = null;
 let busy = false;
 let time = 0;
@@ -81,6 +81,7 @@ function redraw() {
 	drawWithData(drawData);
 	busy = true;
 }
+
 async function renderFinished(e) {
 	const bitmap = await createImageBitmap(e.image);
 	lastDrawn = e;
@@ -124,8 +125,8 @@ function render() {
 window.addEventListener('wheel', (e) => {
 	const factor = e.deltaY > 0 ? 1 / zoomFactor : zoomFactor;
 
-	const wheelPosX = e.pageX / canvas.width;
-	const wheelPosY = e.pageY / canvas.height;
+	const wheelPosX = e.pageX / canvas.offsetWidth;
+	const wheelPosY = e.pageY / canvas.offsetHeight;
 
 	const iSpan = (curImMax - curImMin);
 	const rSpan = (curReMax - curReMin);
@@ -168,8 +169,8 @@ window.addEventListener('mousedown', (e) => {
 window.addEventListener('mousemove', (e) => {
 	if (!dragging) return;
 
-	const rRatio = canvas.width / (dragStartMaxR - dragStartMinR);
-	const iRatio = canvas.height / (dragStartMaxI - dragStartMinI);
+	const rRatio = canvas.offsetWidth / (dragStartMaxR - dragStartMinR);
+	const iRatio = canvas.offsetHeight / (dragStartMaxI - dragStartMinI);
 
 	const rDiff = (dragStartX - e.pageX) / rRatio;
 	const iDiff = (dragStartY - e.pageY) / iRatio;
